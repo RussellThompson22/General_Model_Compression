@@ -152,3 +152,81 @@ def shufflenet(input_shape, num_classes, scale_factor=1.0, groups=3):
 
     model = tf.keras.Model(inputs=input_tensor, outputs=x)
     return model
+
+
+
+def conv_block(x, filters=16, kernel_size=3, strides=2):
+    conv_layer = layers.Conv2D(
+        filters, kernel_size, strides=strides, activation=tf.nn.swish, padding="same"
+    )
+    return conv_layer(x)
+
+
+# Reference: https://git.io/JKgtC
+
+
+def inverted_residual_block(x, expanded_channels, output_channels, strides=1):
+    m = layers.Conv2D(expanded_channels, 1, padding="same", use_bias=False)(x)
+    m = layers.BatchNormalization()(m)
+    m = tf.nn.swish(m)
+
+    if strides == 2:
+        m = layers.ZeroPadding2D(padding=imagenet_utils.correct_pad(m, 3))(m)
+    m = layers.DepthwiseConv2D(
+        3, strides=strides, padding="same" if strides == 1 else "valid", use_bias=False
+    )(m)
+    m = layers.BatchNormalization()(m)
+    m = tf.nn.swish(m)
+
+    m = layers.Conv2D(output_channels, 1, padding="same", use_bias=False)(m)
+    m = layers.BatchNormalization()(m)
+
+    if tf.math.equal(x.shape[-1], output_channels) and strides == 1:
+        return layers.Add()([m, x])
+    return m
+
+from transformers import TFEfficientFormerForImageClassification, EfficientFormerConfig, EfficientFormerImageProcessor
+
+def efficientformer(input_shape, num_classes):
+    # Create a configuration for the model
+    config = EfficientFormerConfig()
+
+    # Create the TFEfficientFormerModel
+    efficientformer = TFEfficientFormerForImageClassification(config)
+    efficientformer.classifier = tf.keras.layers.Dense(num_classes, activation='softmax', name = 'classifier')
+
+    efficientformer.build(input_shape)
+
+    model = tf.keras.Sequential([
+        tf.keras.layers.Resizing(224, 224,
+                                interpolation="bilinear",
+                                crop_to_aspect_ratio=False),
+        tf.keras.layers.Permute(dims=(3, 1, 2)),
+        tf.keras.layers.Normalization(),
+        efficientformer,
+        ])
+
+    return model
+
+from transformers import TFMobileViTForImageClassification, MobileViTConfig, MobileViTImageProcessor
+
+def mobilevit(input_shape, num_classes):
+    # Create a configuration for the model
+    config = MobileViTConfig()
+
+    # Create the TFMobileViTModel
+    MobileViT = TFMobileViTForImageClassification(config)
+    MobileViT.classifier = tf.keras.layers.Dense(num_classes, activation='softmax', name = 'classifier')
+
+    model = tf.keras.Sequential([
+        tf.keras.layers.Resizing(224, 224,
+                                interpolation="bilinear",
+                                crop_to_aspect_ratio=False),
+        tf.keras.layers.Permute(dims=(3, 1, 2)),
+        tf.keras.layers.Normalization(),
+        MobileViT,
+        ])
+
+    return model
+
+
