@@ -1,3 +1,10 @@
+def setup_data(t_d, hp):
+    train_dataset = t_d['train_dataset'].batch(hp['batch_size'])
+    val_dataset = t_d['val_dataset'].batch(hp['batch_size'])
+    test_dataset = t_d['test_dataset'].batch(hp['batch_size'])
+
+    return train_dataset, val_dataset, test_dataset
+
 def get_local_directory():
     print("Please input the path of the image folder in your Google Drive:")
     image_folder = '/content/drive/MyDrive/UMASSD/Model Compression/UATD/UATD_Training/images'
