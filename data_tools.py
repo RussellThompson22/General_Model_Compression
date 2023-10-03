@@ -1,4 +1,5 @@
 import tensorflow as tf
+import socket
 import os
 import cv2
 from General_Model_Compression import *
@@ -43,6 +44,17 @@ def create_test_dataset(image_folder, xml_folder):
 
     return dataset
 
+def get_dataset_info(dataset):
+    unique_labels = set()
+    for _, labels in dataset:
+        unique_labels.update([labels.numpy()])
+
+    # Assuming dataset is batched, take one batch to get input shape
+    for images, _ in dataset.take(1):
+        input_shape = images.shape
+
+    return input_shape, len(unique_labels)
+
 # def create_datasets():
 #     # Create the training dataset
 #     image_folder, xml_folder = get_local_directory()
@@ -79,8 +91,6 @@ def create_test_dataset(image_folder, xml_folder):
 #     return tr_dataset, v_dataset, te_dataset
 
 def get_datasets():
-    import socket
-    import tensorflow as tf
     host_name = socket.gethostname()
     if host_name =='jetson-desktop':
         save_dir = './Documents/Data/UATD'
@@ -97,14 +107,12 @@ def get_datasets():
 
     return tr_dataset, v_dataset, te_dataset
 
-def get_dataset_info(dataset):
-    unique_labels = set()
-    for _, labels in dataset:
-        unique_labels.update([labels.numpy()])
 
-    # Assuming dataset is batched, take one batch to get input shape
-    for images, _ in dataset.take(1):
-        input_shape = images.shape
 
-    return input_shape, len(unique_labels)
+def setup_data(t_d, hp):
+    train_dataset = t_d['train_dataset'].batch(hp['batch_size'])
+    val_dataset = t_d['val_dataset'].batch(hp['batch_size'])
+    test_dataset = t_d['test_dataset'].batch(hp['batch_size'])
+
+    return train_dataset, val_dataset, test_dataset
 
