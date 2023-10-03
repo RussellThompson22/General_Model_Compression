@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 def preprocess_images(images, img_size=(128, 128)):
     preprocessed_images = [cv2.resize(img, img_size) for img in images]
     return np.array(preprocessed_images)
