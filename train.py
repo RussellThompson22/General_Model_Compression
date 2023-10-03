@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow_model_optimization as tfmot
 import wandb
 from tqdm.auto import tqdm
-from General_Model_Compression import *
+from General_Model_Compression.data_utils import get_dataset_info
 
 def standardize_model_output(output):
     try:
