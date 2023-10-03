@@ -1,3 +1,8 @@
+import tensorflow as tf
+import os
+import cv2
+from General_Model_Compression import *
+
 def setup_data(t_d, hp):
     train_dataset = t_d['train_dataset'].batch(hp['batch_size'])
     val_dataset = t_d['val_dataset'].batch(hp['batch_size'])
