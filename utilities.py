@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 def preprocess_images(images, img_size=(128, 128)):
     preprocessed_images = [cv2.resize(img, img_size) for img in images]
@@ -45,16 +46,5 @@ def plot_history(history):
     ax2.legend()
 
     plt.show()
-
-def get_dataset_info(dataset):
-    unique_labels = set()
-    for _, labels in dataset:
-        unique_labels.update([labels.numpy()])
-
-    # Assuming dataset is batched, take one batch to get input shape
-    for images, _ in dataset.take(1):
-        input_shape = images.shape
-
-    return input_shape, len(unique_labels)
 
 
