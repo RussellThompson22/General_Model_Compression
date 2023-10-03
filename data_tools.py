@@ -80,6 +80,7 @@ def create_test_dataset(image_folder, xml_folder):
 
 def get_datasets():
     import socket
+    import tensorflow as tf
     host_name = socket.gethostname()
     if host_name =='jetson-desktop':
         save_dir = './Documents/Data/UATD'
@@ -95,4 +96,15 @@ def get_datasets():
     tr_dataset = tf.data.Dataset.load(os.path.join(save_dir, "uatd_test_dataset"))
 
     return tr_dataset, v_dataset, te_dataset
+
+def get_dataset_info(dataset):
+    unique_labels = set()
+    for _, labels in dataset:
+        unique_labels.update([labels.numpy()])
+
+    # Assuming dataset is batched, take one batch to get input shape
+    for images, _ in dataset.take(1):
+        input_shape = images.shape
+
+    return input_shape, len(unique_labels)
 
