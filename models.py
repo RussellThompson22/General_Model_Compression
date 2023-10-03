@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Activation, concatenate, GlobalAveragePooling2D, Dense, layers
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Activation, concatenate, GlobalAveragePooling2D, Dense
 
 from tensorflow.keras.applications import MobileNet
 
