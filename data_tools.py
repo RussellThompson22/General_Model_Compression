@@ -67,7 +67,17 @@ def create_datasets():
     return tr_dataset, v_dataset, te_dataset
 
 def get_datasets():
-    save_dir = '/content/drive/MyDrive/UMASSD/Model Compression/UATD/UATD_Training'
+    import socket
+    host_name = socket.gethostname()
+    if host_name =='jetson-desktop':
+        save_dir = './Documents/Data/UATD'
+    elif os.path.exists('/content/drive/MyDrive/Model Compression/UATD/UATD_Training'):
+        save_dir = '/content/drive/MyDrive/Model Compression/UATD/UATD_Training'
+    elif os.path.exists('/content/drive/MyDrive/UMASS/Model Compression/UATD/UATD_Training'):
+        save_dir = '/content/drive/MyDrive/UMASS/Model Compression/UATD/UATD_Training'
+    else:
+        raise ValueError("UNKNOWN SAVE DIRECTORY")
+
     te_dataset = tf.data.Dataset.load(os.path.join(save_dir, "uatd_train_dataset"))
     v_dataset = tf.data.Dataset.load(os.path.join(save_dir, "uatd_val_dataset"))
     tr_dataset = tf.data.Dataset.load(os.path.join(save_dir, "uatd_test_dataset"))
