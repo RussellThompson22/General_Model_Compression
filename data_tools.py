@@ -97,7 +97,7 @@ def get_datasets():
     elif os.path.exists('/content/drive/MyDrive/Model Compression/UATD/UATD_Training'):
         save_dir = '/content/drive/MyDrive/Model Compression/UATD/UATD_Training'
     elif os.path.exists('/content/drive/MyDrive/UMASSD/Model Compression/UATD/UATD_Training'):
-        save_dir = '/content/drive/MyDrive/UMASS/Model Compression/UATD/UATD_Training'
+        save_dir = '/content/drive/MyDrive/UMASSD/Model Compression/UATD/UATD_Training'
     else:
         raise ValueError("UNKNOWN SAVE DIRECTORY")
 
