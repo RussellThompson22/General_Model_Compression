@@ -1,11 +1,8 @@
 import tensorflow as tf
-import numpy as np
 from tqdm.auto import tqdm
-from tensorflow_model_optimization.sparsity.keras import prune_low_magnitude
-from tensorflow_model_optimization.sparsity.keras import PolynomialDecay
+from tensorflow_model_optimization.sparsity.keras import prune_low_magnitude, PolynomialDecay
 from tensorflow_model_optimization.quantization.keras import quantize_model
-from tensorflow_model_optimization.clustering.keras import cluster_weights
-from tensorflow_model_optimization.clustering.keras import CentroidInitialization
+from tensorflow_model_optimization.clustering.keras import cluster_weights, CentroidInitialization
 
 def initialize_metrics():
     """
@@ -34,64 +31,53 @@ def train_loop(dataset, model, loss_object, optimizer, metrics, training=True):
         metrics['train_loss'].update_state(loss)
         metrics['train_accuracy'].update_state(y, predictions)
 
-def apply_pruning(model, initial_sparsity, final_sparsity, begin_step, end_step):
+def train_model(model, train_dataset, val_dataset, epochs, optimizer, loss_object):
     """
-    Apply pruning to the model.
-    """
-    pruning_params = {
-        'pruning_schedule': PolynomialDecay(initial_sparsity=initial_sparsity,
-                                            final_sparsity=final_sparsity,
-                                            begin_step=begin_step,
-                                            end_step=end_step)
-    }
-    return prune_low_magnitude(model, **pruning_params)
-
-def apply_quantization(model):
-    """
-    Apply quantization to the model.
-    """
-    return quantize_model(model)
-
-def apply_clustering(model, number_of_clusters):
-    """
-    Apply clustering to the model.
-    """
-    return cluster_weights(model, number_of_clusters=number_of_clusters,
-                           cluster_centroids_init=CentroidInitialization.LINEAR)
-
-def train_model(model, train_dataset, val_dataset, epochs, optimizer, loss_object, apply_compression=None, compression_params=None):
-    """
-    Train the model with optional compression techniques.
+    Train the model sequentially with different compression techniques:
+    1. No compression
+    2. Quantization
+    3. Weight pruning
+    4. Clustering
     """
     metrics = initialize_metrics()
 
-    if apply_compression:
-        model = apply_compression(model, **compression_params)
-
-    for epoch in tqdm(range(epochs), desc="Training"):
-        print(f"Epoch {epoch+1}/{epochs}")
-        
-        # Training phase
+    # Initial training without compression
+    print("Training without compression...")
+    for epoch in tqdm(range(epochs), desc="Training - No Compression"):
         train_loop(train_dataset, model, loss_object, optimizer, metrics['train'], training=True)
-
-        # Validation phase
         train_loop(val_dataset, model, loss_object, optimizer, metrics['test'], training=False)
 
-        print(f"Train Loss: {metrics['train_loss'].result()}, Train Accuracy: {metrics['train_accuracy'].result()}")
-        print(f"Validation Loss: {metrics['test_loss'].result()}, Validation Accuracy: {metrics['test_accuracy'].result()}")
+    # Apply quantization and retrain
+    print("Training with quantization...")
+    model = quantize_model(model)
+    for epoch in tqdm(range(epochs), desc="Training - Quantization"):
+        train_loop(train_dataset, model, loss_object, optimizer, metrics['train'], training=True)
+        train_loop(val_dataset, model, loss_object, optimizer, metrics['test'], training=False)
 
-        # Reset metrics at the end of epoch
-        for metric in metrics.values():
-            metric.reset_states()
+    # Apply pruning and retrain
+    print("Training with pruning...")
+    pruning_params = {
+        'pruning_schedule': PolynomialDecay(initial_sparsity=0.1, final_sparsity=0.5, begin_step=0, end_step=200)
+    }
+    model = prune_low_magnitude(model, **pruning_params)
+    for epoch in tqdm(range(epochs), desc="Training - Pruning"):
+        train_loop(train_dataset, model, loss_object, optimizer, metrics['train'], training=True)
+        train_loop(val_dataset, model, loss_object, optimizer, metrics['test'], training=False)
 
-    if hasattr(model, 'strip_clustering'):
-        model = model.strip_clustering()
+    # Apply clustering and retrain
+    print("Training with clustering...")
+    model = cluster_weights(model, number_of_clusters=16,
+                            cluster_centroids_init=CentroidInitialization.LINEAR)
+    for epoch in tqdm(range(epochs), desc="Training - Clustering"):
+        train_loop(train_dataset, model, loss_object, optimizer, metrics['train'], training=True)
+        train_loop(val_dataset, model, loss_object, optimizer, metrics['test'], training=False)
+
+    # Optional: strip model of pruning and clustering artifacts for final use
+    model = tfmot.sparsity.keras.strip_pruning(model)
+    model = tfmot.clustering.keras.strip_clustering(model)
 
     return model
 
 # Example usage:
-# model = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=True, classes=10)
-# optimizer = tf.keras.optimizers.Adam()
-# loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-# trained_model = train_model(model, train_dataset, val_dataset, 10, optimizer, loss_object,
-#                             apply_compression=apply_pruning, compression_params={'initial_sparsity': 0.1, 'final_sparsity': 0.5, 'begin_step': 0, 'end_step': 1000})
+# Assuming model, train_dataset, val_dataset, optimizer, and loss_object are properly defined
+# trained_model = train_model(model, train_dataset, val_dataset, 10, optimizer, loss_object)
